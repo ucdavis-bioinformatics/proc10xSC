@@ -488,7 +488,7 @@ def main(read1, read2, output_dir, output_all, interleaved, profile, bc_whitelis
                         continue
             output.writeRead(fragment)
 
-            if read_count % 25000 == 0 and verbose:
+            if read_count % 250000 == 0 and verbose:
                 sys.stderr.write("PROCESS\tREADS\treads analyzed:%i|reads/sec:%i|barcodes:%i|median_reads/barcode:%.2f\n" % (read_count, round(read_count / (time.time() - stime), 0), len(cbcCounter), median(cbcCounter.values())))
 
     except StopIteration:
