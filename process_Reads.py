@@ -466,8 +466,13 @@ def main(read1, read2, output_dir, output_all, interleaved, profile, bc_whitelis
 
             if seqToHash(fragment['cell_bc']) in cbcDict:  # barcode matches whitelist
                 cbcCounter[seqToHash(fragment['cell_bc'])] += 1
-                barcode_match += 1
-                fragment['status'] = "MATCH"
+                if 'N' in fragment['cell_bc']:
+                    barcode_1mismatch += 1
+                    fragment['status'] = "MISMATCH1"
+                    fragment['cell_bc'] = cbcDict[seqToHash(fragment['cell_bc'])]
+                else:
+                    barcode_match += 1
+                    fragment['status'] = "MATCH"
             else:
                 hamming = getHammingOne(fragment['cell_bc'])
                 hamming_test = [ham in cbcDict for ham in hamming]
