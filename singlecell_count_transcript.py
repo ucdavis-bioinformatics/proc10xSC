@@ -122,7 +122,6 @@ def main(infile, output_dir, verbose):
                         umi_Counter_rvs[gene_id] = {}
                         umi_Counter_rvs[gene_id][rid[0]] = Counter([rid[1]])
                         read_assigned_rvs += 1
-
     except StopIteration:
         with open(output_dir + 'fwd_counts.txt', 'w') as f:
             bc_keys = barcode_list.keys()
