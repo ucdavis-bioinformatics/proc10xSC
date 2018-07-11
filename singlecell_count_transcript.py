@@ -69,7 +69,7 @@ def main(infile, output_dir, verbose):
                 rid = tag.split(':')[0:2] # [cell_bc, umi]
                 barcode_list[rid[0]] += 1
 
-                flag = line2[1]
+                flag = int(line2[1])
                 if (flag & 0x100):  # secondary alignment, ignore
                     continue
                 if (flag & 0x4): # segment unmapped
@@ -147,7 +147,6 @@ def main(infile, output_dir, verbose):
                     else:
                         txt = "\t".join([txt,str(0)])
                 f.write(txt + '\n')
-
         if verbose:
             sys.stderr.write("PROCESS\tREADS\treads analyzed:%i|reads/sec:%i|barcodes:%i|reads/barcode:%f\n" % (read_count, round(read_count / (time.time() - stime), 0), len(barcode_list), median(barcode_list.values())))
             sys.stderr.write("PROCESS\tREADS\tASSIGNED FWD: %i (%.2f%%)\n" % (read_assigned_fwd, (float(read_assigned_fwd) / read_count) * 100))
@@ -155,8 +154,7 @@ def main(infile, output_dir, verbose):
             sys.stderr.write("PROCESS\tREADS\tASSIGNED RVS: %i (%.2f%%)\n" % (read_assigned_rvs, (float(read_assigned_rvs) / read_count) * 100))
             sys.stderr.write("PROCESS\tREADS\tUMI RVS: %i (%.2f%%)\n" % (read_umi_rvs, (float(read_umi_rvs) / read_count) * 100))
             sys.stderr.write("PROCESS\tREADS\tAMBIGUOUS: %i (%.2f%%)\n" % (read_ambiguous, (float(read_ambiguous) / read_count) * 100))
-            sys.stderr.write("PROCESS\tREADS\tUNMAPPED: %i (%.2f%%)\n" % (read_unmapped, (float(read_unmapped / read_count) * 100))
-        pass
+            sys.stderr.write("PROCESS\tREADS\tUNMAPPED: %i (%.2f%%)\n" % (read_unmapped, (float(read_unmapped) / read_count) * 100))
     except (KeyboardInterrupt, SystemExit):
         sys.exit("PROCESS\tERROR\t%s unexpectedly terminated\n" % (__name__))
     except Exception:
