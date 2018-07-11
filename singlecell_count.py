@@ -97,7 +97,6 @@ def main(infile, output_dir, verbose):
                     read_assigned += 1
 
     except StopIteration:
-        base = output_dir
         with open(output_dir + 'counts.txt', 'w') as f:
             bc_keys = barcode_list.keys()
             f.write('Gene_ID\t' + '\t'.join(bc_keys) + '\n')

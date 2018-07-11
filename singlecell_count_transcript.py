@@ -124,7 +124,6 @@ def main(infile, output_dir, verbose):
                         read_assigned_rvs += 1
 
     except StopIteration:
-        base = output_dir
         with open(output_dir + 'fwd_counts.txt', 'w') as f:
             bc_keys = barcode_list.keys()
             f.write('Gene_ID\t' + '\t'.join(bc_keys) + '\n')
