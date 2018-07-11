@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 '''
 Copyright 2018 Matt Settles
-Created June 28, 2018
+Created July 11, 2018
 
-Read in mapped reads with STAR assigned to gene with FeatureCounts and produce counts table.
+Read in mapped reads with BWA to transcriptome and produces a counts table.
 '''
 
 import os.path
@@ -36,13 +36,16 @@ def main(infile, output_dir, verbose):
     global read_count
     global stime
 
-    read_assigned = 0
-    read_umi = 0
+    read_assigned_fwd = 0
+    read_assigned_rvs = 0
+    read_umi_fwd = 0
+    read_umi_rvs = 0
     read_ambiguous = 0
-    read_unknown = 0
+    read_unmapped = 0
 
     barcode_list = Counter()
-    umi_Counter = {}
+    umi_Counter_fwd = {}
+    umi_Counter_rvs = {}
 
     if infile == 'stdin':
         # reading from stdin
@@ -65,58 +68,96 @@ def main(infile, output_dir, verbose):
                 tag = line2[0]
                 rid = tag.split(':')[0:2] # [cell_bc, umi]
                 barcode_list[rid[0]] += 1
-                # Looking for tags XS, XN and XT
-                # XS: Assignment status
-                # XN: Number of targets
-                # XT: Comma separated target list
-                xs = [x for x in line2 if x.startswith('XS')]
 
-                if xs[0][5:] != 'Assigned':
-                    read_unknown += 1
+                flag = line2[1]
+                if (flag & 0x100):  # secondary alignment, ignore
                     continue
-                xn = [x for x in line2 if x.startswith('XN')]
-                if int(xn[0][5:]) != 1:
+                if (flag & 0x4): # segment unmapped
+                    read_unmapped += 1
+                    continue
+                transcript_id = line2[2]
+                gene_id = '_'.join(transcript_id.split("_")[:-1])
+
+                # Look for multi-mappers
+                # Looking for tags XA (From bwa)
+                # XA : Alternative hits; format: (chr,pos,CIGAR,NM;)*
+                xa = [x for x in line2 if x.startswith('XA')]
+                if len(xa) != 0:
+                    xa = xa[0][5:]
+                    xa = xa.split(";")[:-1]
+                    xa_transcript = [x.split(",")[0] for x in xa]
+                    xa_gene = ['_'.join(x.split("_")[:-1]) for x in xa_transcript]
+                    xa_gene.append(gene_id) # add the mapped Gene_ID
+                    num_hits = len(set(xa_gene))
+                    if num_hits > 1:
                     read_ambiguous +=1
                     continue
-                xt = [x for x in line2 if x.startswith('XT')]
-                xt = xt[0][5:].split(',')[0]
-
-                if xt in umi_Counter:
-                    if rid[0] in umi_Counter[xt]:
-                        if rid[1] in umi_Counter[xt][rid[0]]:
-                            read_umi += 1
+                if (flag & 0x10):
+                    if gene_id in umi_Counter_rvs:
+                        if rid[0] in umi_Counter_rvs[gene_id]:
+                            if rid[1] in umi_Counter_rvs[gene_id][rid[0]]:
+                                read_umi_fwd += 1
+                            else:
+                                read_assigned_fwd += 1
+                            umi_Counter_rvs[gene_id][rid[0]][rid[1]] += 1
                         else:
-                            read_assigned += 1
-                        umi_Counter[xt][rid[0]][rid[1]] += 1
+                            umi_Counter_rvs[gene_id][rid[0]] = Counter([rid[1]])
+                            read_assigned_fwd += 1
                     else:
-                        umi_Counter[xt][rid[0]] = Counter([rid[1]])
-                        read_assigned += 1
+                        umi_Counter_rvs[gene_id] = {}
+                        umi_Counter_rvs[gene_id][rid[0]] = Counter([rid[1]])
+                        read_assigned_fwd += 1
                 else:
-                    umi_Counter[xt] = {}
-                    umi_Counter[xt][rid[0]] = Counter([rid[1]])
-                    read_assigned += 1
+                    if gene_id in umi_Counter_rvs:
+                        if rid[0] in umi_Counter_rvs[gene_id]:
+                            if rid[1] in umi_Counter_rvs[gene_id][rid[0]]:
+                                read_umi_rvs += 1
+                            else:
+                                read_assigned_rvs += 1
+                            umi_Counter_rvs[gene_id][rid[0]][rid[1]] += 1
+                        else:
+                            umi_Counter_rvs[gene_id][rid[0]] = Counter([rid[1]])
+                            read_assigned_rvs += 1
+                    else:
+                        umi_Counter_rvs[gene_id] = {}
+                        umi_Counter_rvs[gene_id][rid[0]] = Counter([rid[1]])
+                        read_assigned_rvs += 1
 
     except StopIteration:
         base = output_dir
-        with open(output_dir + 'counts.txt', 'w') as f:
+        with open(output_dir + 'fwd_counts.txt', 'w') as f:
             bc_keys = barcode_list.keys()
             f.write('Gene_ID\t' + '\t'.join(bc_keys) + '\n')
 
-            for gene in umi_Counter:
+            for gene in umi_Counter_fwd:
                 txt = gene
                 for bc in bc_keys:
-                    if bc in umi_Counter[gene]:
-                        txt = "\t".join([txt,str(len(umi_Counter[gene][bc]))])
+                    if bc in umi_Counter_fwd[gene]:
+                        txt = "\t".join([txt,str(len(umi_Counter_fwd[gene][bc]))])
+                    else:
+                        txt = "\t".join([txt,str(0)])
+                f.write(txt + '\n')
+        with open(output_dir + 'rvs_counts.txt', 'w') as f:
+            bc_keys = barcode_list.keys()
+            f.write('Gene_ID\t' + '\t'.join(bc_keys) + '\n')
+
+            for gene in umi_Counter_rvs:
+                txt = gene
+                for bc in bc_keys:
+                    if bc in umi_Counter_rvs[gene]:
+                        txt = "\t".join([txt,str(len(umi_Counter_rvs[gene][bc]))])
                     else:
                         txt = "\t".join([txt,str(0)])
                 f.write(txt + '\n')
 
         if verbose:
             sys.stderr.write("PROCESS\tREADS\treads analyzed:%i|reads/sec:%i|barcodes:%i|reads/barcode:%f\n" % (read_count, round(read_count / (time.time() - stime), 0), len(barcode_list), median(barcode_list.values())))
-            sys.stderr.write("PROCESS\tREADS\tASSIGNED: %i (%.2f%%)\n" % (read_assigned, (float(read_assigned) / read_count) * 100))
-            sys.stderr.write("PROCESS\tREADS\tUMI: %i (%.2f%%)\n" % (read_umi, (float(read_umi) / read_count) * 100))
+            sys.stderr.write("PROCESS\tREADS\tASSIGNED FWD: %i (%.2f%%)\n" % (read_assigned_fwd, (float(read_assigned_fwd) / read_count) * 100))
+            sys.stderr.write("PROCESS\tREADS\tUMI FWD: %i (%.2f%%)\n" % (read_umi_fwd, (float(read_umi_fwd) / read_count) * 100))
+            sys.stderr.write("PROCESS\tREADS\tASSIGNED RVS: %i (%.2f%%)\n" % (read_assigned_rvs, (float(read_assigned_rvs) / read_count) * 100))
+            sys.stderr.write("PROCESS\tREADS\tUMI RVS: %i (%.2f%%)\n" % (read_umi_rvs, (float(read_umi_rvs) / read_count) * 100))
             sys.stderr.write("PROCESS\tREADS\tAMBIGUOUS: %i (%.2f%%)\n" % (read_ambiguous, (float(read_ambiguous) / read_count) * 100))
-            sys.stderr.write("PROCESS\tREADS\tUNKNOWN: %i (%.2f%%)\n" % (read_unknown, (float(read_unknown) / read_count) * 100))
+            sys.stderr.write("PROCESS\tREADS\tUNMAPPED: %i (%.2f%%)\n" % (read_unmapped, (float(read_unmapped / read_count) * 100))
         pass
     except (KeyboardInterrupt, SystemExit):
         sys.exit("PROCESS\tERROR\t%s unexpectedly terminated\n" % (__name__))
