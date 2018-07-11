@@ -491,7 +491,7 @@ def main(read1, read2, output_dir, output_all, output_count, interleaved, profil
                     fragment['status'] = "AMBIGUOUS"
                     if not output_all:
                         continue
-            if !output_count:
+            if not output_count:
                 output.writeRead(fragment)
 
             if read_count % 250000 == 0 and verbose:
