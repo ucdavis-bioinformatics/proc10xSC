@@ -90,8 +90,8 @@ def main(infile, output_dir, verbose):
                     xa_gene.append(gene_id) # add the mapped Gene_ID
                     num_hits = len(set(xa_gene))
                     if num_hits > 1:
-                    read_ambiguous +=1
-                    continue
+                        read_ambiguous +=1
+                        continue
                 if (flag & 0x10):
                     if gene_id in umi_Counter_rvs:
                         if rid[0] in umi_Counter_rvs[gene_id]:
