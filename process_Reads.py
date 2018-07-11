@@ -432,7 +432,7 @@ class IlluminaTwoReadOutput:
                 raise
 
 
-def main(read1, read2, output_dir, output_all, interleaved, profile, bc_whitelist, cell1, cell2, umi1, umi2, nogzip, verbose):
+def main(read1, read2, output_dir, output_all, output_count, interleaved, profile, bc_whitelist, cell1, cell2, umi1, umi2, nogzip, verbose):
     # Set up the global variables
     global read_count
     global stime
@@ -491,7 +491,8 @@ def main(read1, read2, output_dir, output_all, interleaved, profile, bc_whitelis
                     fragment['status'] = "AMBIGUOUS"
                     if not output_all:
                         continue
-            output.writeRead(fragment)
+            if !output_count:
+                output.writeRead(fragment)
 
             if read_count % 250000 == 0 and verbose:
                 sys.stderr.write("PROCESS\tREADS\treads analyzed:%i|reads/sec:%i|barcodes:%i|median_reads/barcode:%.2f\n" % (read_count, round(read_count / (time.time() - stime), 0), len(cbcCounter), median(cbcCounter.values())))
@@ -530,6 +531,9 @@ parser.add_argument('-i', help="output in interleaved format, if -o stdout, inte
 
 parser.add_argument('-g', '--nogzip', help="do not gzip the output, ignored if output is stdout",
                     action="store_true", dest="nogzip", default=False)
+
+parser.add_argument('-n', '--count', help="don't output any reads, just count barcodes and status [default: %(default)s]",
+                    action="store_true", dest="output_count", default=False)
 
 parser.add_argument('-a', '--all', help="output all reads, not just those with valid cell barcode, STATUS will be UNKNOWN, or AMBIGUOUS [default: %(default)s]",
                     action="store_true", dest="output_all", default=False)
@@ -579,6 +583,7 @@ umi2 = options.umi2
 # profile = options.profile
 profile = False
 output_all = options.output_all
+output_count = options.output_count
 
 infile1 = options.read1
 if infile1 is None:
@@ -600,6 +605,6 @@ read_count = 0
 
 stime = time.time()
 
-main(infile1, infile2, output_dir, output_all, interleaved, profile, bc_whitelist, cell1, cell2, umi1, umi2, nogzip, verbose)
+main(infile1, infile2, output_dir, output_all, output_count, interleaved, profile, bc_whitelist, cell1, cell2, umi1, umi2, nogzip, verbose)
 
 sys.exit(0)
