@@ -92,22 +92,7 @@ def main(infile, output_dir, verbose):
                     if num_hits > 1:
                         read_ambiguous +=1
                         continue
-                if (flag & 0x10):
-                    if gene_id in umi_Counter_rvs:
-                        if rid[0] in umi_Counter_rvs[gene_id]:
-                            if rid[1] in umi_Counter_rvs[gene_id][rid[0]]:
-                                read_umi_fwd += 1
-                            else:
-                                read_assigned_fwd += 1
-                            umi_Counter_rvs[gene_id][rid[0]][rid[1]] += 1
-                        else:
-                            umi_Counter_rvs[gene_id][rid[0]] = Counter([rid[1]])
-                            read_assigned_fwd += 1
-                    else:
-                        umi_Counter_rvs[gene_id] = {}
-                        umi_Counter_rvs[gene_id][rid[0]] = Counter([rid[1]])
-                        read_assigned_fwd += 1
-                else:
+                if (flag & 0x10): # Reverse Orientation
                     if gene_id in umi_Counter_rvs:
                         if rid[0] in umi_Counter_rvs[gene_id]:
                             if rid[1] in umi_Counter_rvs[gene_id][rid[0]]:
@@ -122,6 +107,21 @@ def main(infile, output_dir, verbose):
                         umi_Counter_rvs[gene_id] = {}
                         umi_Counter_rvs[gene_id][rid[0]] = Counter([rid[1]])
                         read_assigned_rvs += 1
+                else:
+                    if gene_id in umi_Counter_fwd:
+                        if rid[0] in umi_Counter_fwd[gene_id]:
+                            if rid[1] in umi_Counter_fwd[gene_id][rid[0]]:
+                                read_umi_fwd += 1
+                            else:
+                                read_assigned_fwd += 1
+                            umi_Counter_fwd[gene_id][rid[0]][rid[1]] += 1
+                        else:
+                            umi_Counter_fwd[gene_id][rid[0]] = Counter([rid[1]])
+                            read_assigned_fwd += 1
+                    else:
+                        umi_Counter_fwd[gene_id] = {}
+                        umi_Counter_fwd[gene_id][rid[0]] = Counter([rid[1]])
+                        read_assigned_fwd += 1
     except StopIteration:
         with open(output_dir + 'fwd_counts.txt', 'w') as f:
             bc_keys = barcode_list.keys()
