@@ -447,7 +447,8 @@ def main(read1, read2, output_dir, output_all, output_count, interleaved, profil
     cbcCounter = Counter()
 
     # open output files
-    output = IlluminaTwoReadOutput(output_dir, nogzip, interleaved)
+    if not output_count:
+        output = IlluminaTwoReadOutput(output_dir, nogzip, interleaved)
 
     # Process read inputs:
     iterator = TwoReadIlluminaRun(read1, read2, cell1, cell2, umi1, umi2, profile, verbose)
@@ -500,7 +501,8 @@ def main(read1, read2, output_dir, output_all, output_count, interleaved, profil
     except StopIteration:
         with open(output_dir + '_barcodes.txt', 'w') as f:
             [f.write('{0}\t{1}\n'.format(cbcDict[key], value)) for key, value in cbcCounter.items()]
-        output.close()
+        if not output_count:
+            output.close()
 
         if verbose:
             sys.stderr.write("PROCESS\tREADS\treads analyzed:%i|reads/sec:%i|barcodes:%i|reads/barcode:%f\n" % (read_count, round(read_count / (time.time() - stime), 0), len(cbcCounter), median(cbcCounter.values())))
